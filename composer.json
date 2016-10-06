@@ -1,0 +1,6 @@
+{
+  "name": "drupal/select2",
+  "description": "Integrates Select2 in Drupal",
+  "type": "drupal-module",
+  "license": "GPL-2.0+"
+}
