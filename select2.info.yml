@@ -1,0 +1,8 @@
+name: Select2
+type: module
+description: 'Integrates Select2 in Drupal'
+version: VERSION
+core: 8.x
+dependencies:
+  - field
+package: Fields

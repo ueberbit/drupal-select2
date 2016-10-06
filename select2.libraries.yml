@@ -1,0 +1,24 @@
+select2:
+  version: 3.5.2
+  css:
+    theme:
+      js/vendor/select2/select2.css: {}
+  js:
+    js/vendor/select2/select2.min.js: {}
+    js/vendor/select2/select2_locale_de.js: {}
+  dependencies:
+    - core/jquery
+
+select2.widget:
+  version: VERSION
+  js:
+    js/select2.js: {}
+  css:
+    theme:
+      css/select2.theme.css: {}
+  dependencies:
+  - core/jquery
+  - core/jquery.once
+  - core/drupal
+  - core/drupalSettings
+  - select2/select2

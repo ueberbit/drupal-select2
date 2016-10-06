@@ -1,0 +1,65 @@
+<?php
+
+/**
+ * Implements hook_form_views_exposed_form_alter().
+ *
+ * Integrates select2 with autocomplete widgets from entity_views module.
+ */
+function select2_form_views_exposed_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  /** @var \Drupal\views\ViewExecutable $view */
+  $view = $form_state->get('view');
+
+  foreach ($view->filter as $filter) {
+    if ($filter->isExposed() && $filter->getPluginId() == 'entity_views_id') {
+      $element_name = $filter->exposedInfo()['value'];
+
+      // Retrieve autocomplete service from controller, and use it to create the
+      // list of default values with labels. We cannot simply use the service,
+      // because it may have been overridden in a child controller.
+      /** @var \Symfony\Component\Routing\Route $route */
+      $route = \Drupal::service('router.route_provider')->getRouteByName(
+        $form[$element_name]['#autocomplete_route_name'],
+        $form[$element_name]['#autocomplete_route_parameters']
+      );
+      $controller = Drupal::service('controller_resolver')
+        ->getControllerFromDefinition($route->getDefault('_controller'));
+      if (!empty($controller[0]) && $controller[0] instanceof \Drupal\entity_views\Controller\EntityAutocompleteController) {
+        $autocompleteService = $controller[0]->entityAutocomplete;
+      }
+
+      // Retrieve labels for submitted values so select2 can properly display
+      // existing values.
+      $default_labels = array();
+      if ($autocompleteService && !empty($form_state->getUserInput()[$element_name])) {
+        $values = \Drupal\Component\Utility\Tags::explode($form_state->getUserInput()[$element_name]);
+        $entities = entity_load_multiple($filter->getEntityType(), $values);
+        /** @var \Drupal\Core\Entity\EntityInterface $entity */
+        foreach ($entities as $entity) {
+          $entry = $autocompleteService->getMatchEntry($entity,
+            $route->getDefault('value_callback'),
+            $route->getDefault('label_callback')
+          );
+          $entry['text'] = $entry['label'];
+          $entry['id'] = $entry['value'];
+          unset($entry['label'], $entry['value']);
+          $default_labels[] = $entry;
+        }
+      }
+
+      $form[$element_name] = \Drupal\Component\Utility\NestedArray::mergeDeep($form[$element_name], array(
+        '#attributes' => array(
+          'data-select2-autocomplete-widget' => TRUE,
+          'class' => array(
+            'select2-widget',
+          ),
+          'data-default-value' => json_encode($default_labels),
+        ),
+        '#attached' => array(
+          'library' => array(
+            'select2/select2.widget',
+          ),
+        )
+      ));
+    }
+  }
+}
