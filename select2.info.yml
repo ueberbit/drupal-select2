@@ -3,7 +3,3 @@ type: module
 description: 'Integrates Select2 in Drupal'
 version: VERSION
 core: 8.x
-dependencies:
-  - field
-  - entity_reference
-package: Fields
