@@ -6,14 +6,24 @@
 (function ($) {
 
   Drupal.behaviors.select2 = {
-    attach: function (context, settings) {
+    attach: function (context, drupalSettings) {
       // Taxonomy tagging widget.
-      $('[data-select2-taxonomy-widget]').once().each(function () {
-        var url = $(this).data('autocomplete-path');
-        $(this).select2({
-          tokenSeparators: [","],
-          tags: [],
-          multiple: true,
+      $('[data-select2-field-name]').once().each(function () {
+        var fieldName = $(this).data('select2-field-name'),
+          settings = drupalSettings.select2[fieldName],
+          url = $(this).data('autocomplete-path');
+
+        var opts = {
+          tokenSeparators: settings.token_separator,
+          multiple: settings.multiple
+        };
+        // Do not add tags to settings, as soon as it is added, select2 enables it
+        // ignoring the value
+        if (settings.tags) {
+          opts.tags = settings.tags;
+        }
+
+        $(this).select2($.extend(opts, {
           width: 'element',
           createSearchChoice: function (term, data) {
             if ($(data).filter(function () {
@@ -27,13 +37,13 @@
             data: function (term, page) {
               return {
                 q: term
-              }
+              };
             },
             results: function (data, page) {
               // map keys from taxonomy to select2
               var res = [];
               $.each(data, function (key, val) {
-                res.push({'id': val.value, 'text': val.value});
+                res.push({'id': val.value, 'text': settings.display_id ? val.value : val.label});
               });
               var more = (page * 10) < data.length; // whether or not there are more results available
               // notice we return the value of more so Select2 knows if more results can be loaded
@@ -44,12 +54,21 @@
             var data = [];
             // @todo Needs testing, this does not seem to work anymore.
             $(element.val().split(",")).each(function () {
-              var value = this.trim();
-              data.push({id: value, text: value});
+              var value = this.trim(),
+                match = value.match(/^(.*) \((\d+)\)$/);
+              if (!settings.display_id && match) {
+                data.push({id: value, text: match[1]});
+              }
+              else {
+                data.push({id: value, text: value});
+              }
             });
+            if (!settings.multiple) {
+              data = data.shift();
+            }
             callback(data);
           }
-        });
+        }));
       });
 
       // @todo merge both widget configurations; the only difference should be
@@ -84,7 +103,7 @@
               return {
                 q: term,
                 page: page
-              }
+              };
             },
             results: function (data, page) {
               // map keys from taxonomy to select2
